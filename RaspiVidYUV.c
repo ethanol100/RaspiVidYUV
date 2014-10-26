@@ -162,6 +162,10 @@ struct RASPIVIDYUV_STATE_S
    int pixelx;
    int pixely;
    int gnuplot3d;
+   int pixelr;
+   int pixelg;
+   int pixelb;
+   int findRGB;
 };
 
 
@@ -207,6 +211,7 @@ static void display_valid_parameters(char *app_name);
 #define CommandFindMax      16
 #define CommandPixelI       17
 #define CommandGnuplot3d    18
+#define CommandFindRGB      19
 
 static COMMAND_LIST cmdline_commands[] =
 {
@@ -229,6 +234,7 @@ static COMMAND_LIST cmdline_commands[] =
    { CommandFindMax,       "-find-max",    "fm","Find pixel with maximum intensity", 0},
    { CommandPixelI,       "-pixel-instensity",    "pi","Display pixel intensity of Pixel x,y", 1},
    { CommandGnuplot3d,     "-gnuplot-3d",  "g3d","Save gnuplot 3d data", 0},
+   { CommandFindRGB,       "-rgb-value",    "rgbv","List all pixel with value r,g,b", 1},
 };
 
 static int cmdline_commands_size = sizeof(cmdline_commands) / sizeof(cmdline_commands[0]);
@@ -291,7 +297,11 @@ static void default_status(RASPIVIDYUV_STATE *state)
    state->pixelx = 0;
    state->pixely = 0;
    state->gnuplot3d = 0;
-
+   state->findRGB = 0;
+   state->pixelr = 0;
+   state->pixelb = 0;
+   state->pixelg = 0;
+   
    // Setup preview window defaults
    raspipreview_set_defaults(&state->preview_parameters);
 
@@ -553,6 +563,18 @@ static int parse_cmdline(int argc, const char **argv, RASPIVIDYUV_STATE *state)
          state->gnuplot3d = 1;
          break;
 
+      case CommandFindRGB:
+      {
+         if (sscanf(argv[i + 1], "%u,%u,%u", &state->pixelr, &state->pixelg, &state->pixelb) == 3)
+         {
+            state->findRGB = 1;
+            state->useRGB = 1;
+            i++;
+         }
+         else
+            valid = 0;
+         break;
+      }
       default:
       {
          // Try parsing for any image specific parameters
@@ -714,7 +736,8 @@ static void camera_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buff
       int bytes_written = buffer->length;
 
       if (buffer->length && (pData->file_handle || 
-          pData->pstate->findMax || pData->pstate->showPixelI || pData->pstate->gnuplot3d))
+          pData->pstate->findMax || pData->pstate->showPixelI 
+          || pData->pstate->gnuplot3d || pData->pstate->findRGB))
       {
          mmal_buffer_header_mem_lock(buffer);
          int64_t t1 =  vcos_getmicrosecs64();
@@ -762,6 +785,21 @@ static void camera_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buff
                }
                printf("\n");
             }
+         }
+         else if(pData->pstate->findRGB)
+         {
+         int w = VCOS_ALIGN_UP(pData->pstate->width, 32);
+         int i,j;
+         printf("%" PRId64 ":",buffer->pts);
+         for(j=0;j<pData->pstate->height; j++)
+            for(i=0;i<pData->pstate->width; i++)
+         {
+            if( pData->pstate->pixelr == (unsigned char)buffer->data[3*i+j*3*w]
+               && pData->pstate->pixelg == (unsigned char)buffer->data[3*i+1+j*3*w]
+               && pData->pstate->pixelb == (unsigned char)buffer->data[3*i+2+j*3*w])
+               printf(" (%u,%u)",i,j);
+         }
+         printf("\n");
          }
          else
          {
@@ -1428,7 +1466,7 @@ int main(int argc, const char **argv)
          {
             // Only encode stuff if we have a filename and it opened
             // Note we use the copy in the callback, as the call back MIGHT change the file handle
-            if (state.callback_data.file_handle || state.findMax == 1 || state.showPixelI == 1 || state.gnuplot3d == 1)
+            if (state.callback_data.file_handle || state.findMax == 1 || state.showPixelI == 1 || state.gnuplot3d == 1 || state.findRGB == 1)
             {
                int running = 1;
 
