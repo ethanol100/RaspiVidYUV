@@ -744,23 +744,23 @@ static void camera_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buff
 
          if(pData->pstate->findMax)
          {
-         int w = VCOS_ALIGN_UP(pData->pstate->width, 32);
-         int h = VCOS_ALIGN_UP(pData->pstate->height, 16);
-         int i,j;
-         unsigned char maxv=(unsigned char)buffer->data[0];
-         int maxpi=0;
-         int maxpj=0;
-         for(j=0;j<pData->pstate->height; j++)
-            for(i=0;i<pData->pstate->width; i++)
-         {
-            if(maxv<(unsigned char)buffer->data[i+w*j])
+            int w = VCOS_ALIGN_UP(pData->pstate->width, 32);
+            int h = VCOS_ALIGN_UP(pData->pstate->height, 16);
+            int i,j;
+            unsigned char maxv=(unsigned char)buffer->data[0];
+            int maxpi=0;
+            int maxpj=0;
+            for(j=0;j<pData->pstate->height; j++)
+               for(i=0;i<pData->pstate->width; i++)
             {
-               maxv=(unsigned char)buffer->data[i+w*j];
-               maxpi=i;
-               maxpj=j;
+               if(maxv<(unsigned char)buffer->data[i+w*j])
+               {
+                  maxv=(unsigned char)buffer->data[i+w*j];
+                  maxpi=i;
+                  maxpj=j;
+               }
             }
-         }
-         printf("max at (%u,%u) with value %u\n",maxpi,maxpj,maxv);
+            printf("max at (%u,%u) with value %u\n",maxpi,maxpj,maxv);
          }
          else if(pData->pstate->showPixelI)
          {
@@ -788,18 +788,18 @@ static void camera_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buff
          }
          else if(pData->pstate->findRGB)
          {
-         int w = VCOS_ALIGN_UP(pData->pstate->width, 32);
-         int i,j;
-         printf("%" PRId64 ":",buffer->pts);
-         for(j=0;j<pData->pstate->height; j++)
-            for(i=0;i<pData->pstate->width; i++)
-         {
-            if( pData->pstate->pixelr == (unsigned char)buffer->data[3*i+j*3*w]
-               && pData->pstate->pixelg == (unsigned char)buffer->data[3*i+1+j*3*w]
-               && pData->pstate->pixelb == (unsigned char)buffer->data[3*i+2+j*3*w])
-               printf(" (%u,%u)",i,j);
-         }
-         printf("\n");
+            int w = VCOS_ALIGN_UP(pData->pstate->width, 32);
+            int i,j;
+            printf("%" PRId64 ":",buffer->pts);
+            for(j=0;j<pData->pstate->height; j++)
+               for(i=0;i<pData->pstate->width; i++)
+            {
+               if( pData->pstate->pixelr == (unsigned char)buffer->data[3*i+j*3*w]
+                  && pData->pstate->pixelg == (unsigned char)buffer->data[3*i+1+j*3*w]
+                  && pData->pstate->pixelb == (unsigned char)buffer->data[3*i+2+j*3*w])
+                  printf(" (%u,%u)",i,j);
+            }
+            printf("\n");
          }
          else
          {
