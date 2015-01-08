@@ -166,6 +166,8 @@ struct RASPIVIDYUV_STATE_S
    int pixelg;
    int pixelb;
    int findRGB;
+   int countPixelBelow;
+   int binarizeLUT[256];
 };
 
 
@@ -212,6 +214,7 @@ static void display_valid_parameters(char *app_name);
 #define CommandPixelI       17
 #define CommandGnuplot3d    18
 #define CommandFindRGB      19
+#define CommandFindBelow    20
 
 static COMMAND_LIST cmdline_commands[] =
 {
@@ -235,6 +238,7 @@ static COMMAND_LIST cmdline_commands[] =
    { CommandPixelI,       "-pixel-instensity",    "pi","Display pixel intensity of Pixel x,y", 1},
    { CommandGnuplot3d,     "-gnuplot-3d",  "g3d","Save gnuplot 3d data", 0},
    { CommandFindRGB,       "-rgb-value",    "rgbv","List all pixel with value r,g,b", 1},
+   { CommandFindBelow,     "-find-below",    "fb","Count pixel with value below the specified one", 1},
 };
 
 static int cmdline_commands_size = sizeof(cmdline_commands) / sizeof(cmdline_commands[0]);
@@ -301,7 +305,7 @@ static void default_status(RASPIVIDYUV_STATE *state)
    state->pixelr = 0;
    state->pixelb = 0;
    state->pixelg = 0;
-   
+   state->countPixelBelow = 0;
    // Setup preview window defaults
    raspipreview_set_defaults(&state->preview_parameters);
 
@@ -575,6 +579,30 @@ static int parse_cmdline(int argc, const char **argv, RASPIVIDYUV_STATE *state)
             valid = 0;
          break;
       }
+      
+      case CommandFindBelow:
+      {       
+         if (sscanf(argv[i + 1], "%u", &state->countPixelBelow) == 1)
+         {
+            i++;
+            int n;
+            for(n=0;n<256; n++)
+            {
+              if(n<state->countPixelBelow)
+              {
+                 state->binarizeLUT[n]=1;
+              }
+              else
+              {
+                 state->binarizeLUT[n]=0;
+              }
+            }
+         }
+         else
+            valid = 0;
+         break;
+      } 
+      
       default:
       {
          // Try parsing for any image specific parameters
@@ -800,6 +828,22 @@ static void camera_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buff
                   printf(" (%u,%u)",i,j);
             }
             printf("\n");
+         }
+         else if(pData->pstate->countPixelBelow)
+         {
+            int w = VCOS_ALIGN_UP(pData->pstate->width, 32);
+            int h = VCOS_ALIGN_UP(pData->pstate->height, 16);
+            int i,j;
+            int count=0;
+            for(j=0;j<pData->pstate->height; j++)
+               for(i=0;i<pData->pstate->width; i++)
+            {
+               if(pData->pstate->binarizeLUT[(unsigned char)buffer->data[i+w*j]])
+               {
+                count++;
+               }
+            }
+            printf("%g %u\n",buffer->pts/1000000.,count);
          }
          else
          {
