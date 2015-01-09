@@ -41,4 +41,8 @@ Find pixel with specific RGB value "-rgbv 255,255,255":
 Very slow comparison of RGB values using "-rgbv 255,255,255" will output:
 
 "time in us": (p1x,p2y) (p2x,p2y) ...
+
+Count number of pixel with an intensity value below threshold "-fb 123":
+------------------------------------------------------------------------
+"time in s" "#of pixel below threshold"
     
