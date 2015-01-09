@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 # raspividyuv
 set(VCOS_PTHREADS_BUILD_SHARED TRUE)
+set(CMAKE_BUILD_TYPE Release)
 
 SET(COMPILE_DEFINITIONS -Werror)
 

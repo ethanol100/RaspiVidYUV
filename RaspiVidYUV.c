@@ -88,9 +88,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /// Video render needs at least 2 buffers.
 #define VIDEO_OUTPUT_BUFFERS_NUM 3
 
-// Max bitrate we allow for recording
-const int MAX_BITRATE = 25000000; // 25Mbits/s
-
 /// Interval at which we check for an failure abort during capture
 const int ABORT_INTERVAL = 100; // ms
 
@@ -170,17 +167,6 @@ struct RASPIVIDYUV_STATE_S
    int binarizeLUT[256];
 };
 
-
-/// Structure to cross reference H264 profile strings against the MMAL parameter equivalent
-static XREF_T  profile_map[] =
-{
-   {"baseline",     MMAL_VIDEO_PROFILE_H264_BASELINE},
-   {"main",         MMAL_VIDEO_PROFILE_H264_MAIN},
-   {"high",         MMAL_VIDEO_PROFILE_H264_HIGH},
-//   {"constrained",  MMAL_VIDEO_PROFILE_H264_CONSTRAINED_BASELINE} // Does anyone need this?
-};
-
-static int profile_map_size = sizeof(profile_map) / sizeof(profile_map[0]);
 
 static XREF_T  initial_map[] =
 {
@@ -658,14 +644,6 @@ static void display_valid_parameters(char *app_name)
 
    raspicli_display_help(cmdline_commands, cmdline_commands_size);
 
-   // Profile options
-   fprintf(stderr, "\n\nH264 Profile options :\n%s", profile_map[0].mode );
-
-   for (i=1;i<profile_map_size;i++)
-   {
-      fprintf(stderr, ",%s", profile_map[i].mode);
-   }
-
    fprintf(stderr, "\n");
 
    // Help for preview options
@@ -778,7 +756,7 @@ static void camera_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buff
             unsigned char maxv=(unsigned char)buffer->data[0];
             int maxpi=0;
             int maxpj=0;
-            for(j=0;j<pData->pstate->height; j++)
+/*            for(j=0;j<pData->pstate->height; j++)
                for(i=0;i<pData->pstate->width; i++)
             {
                if(maxv<(unsigned char)buffer->data[i+w*j])
@@ -789,6 +767,54 @@ static void camera_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buff
                }
             }
             printf("max at (%u,%u) with value %u\n",maxpi,maxpj,maxv);
+*/
+
+// The following code was suggested by jamesh http://www.raspberrypi.org/forums/viewtopic.php?p=668362#p668362
+//{
+            for(j=0;j<pData->pstate->height; j++)
+                {
+                   uint32_t *ptr32;
+                   ptr32 = (uint32_t *)(&(buffer->data[w*j]));
+                   int wid = pData->pstate->width/4;
+                   for(i=0;i<wid; i++)
+                   {
+                      uint32_t val = *ptr32++;
+
+                      if((val & 0xff) > maxv)
+                      {
+                         maxv=val;
+                         maxpi=i;
+                         maxpj=j;
+                      }
+
+                      val >>= 8;
+                      if((val & 0xff) > maxv)
+                      {
+                         maxv=val;
+                         maxpi=i;
+                         maxpj=j;
+                      }
+
+                      val >>= 8;
+                      if((val & 0xff) > maxv)
+                      {
+                         maxv=val;
+                         maxpi=i;
+                         maxpj=j;
+                      }
+
+                      val >>= 8;
+                      if((val & 0xff) > maxv)
+                      {
+                         maxv=val;
+                         maxpi=i;
+                         maxpj=j;
+                      }
+                   }
+                }
+//} 
+            printf("max at (%u,%u) with value %u\n",maxpi,maxpj,maxv);
+
          }
          else if(pData->pstate->showPixelI)
          {
@@ -836,12 +862,21 @@ static void camera_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buff
             int i,j;
             int count=0;
             for(j=0;j<pData->pstate->height; j++)
-               for(i=0;i<pData->pstate->width; i++)
             {
-               if(pData->pstate->binarizeLUT[(unsigned char)buffer->data[i+w*j]])
-               {
-                count++;
-               }
+                uint32_t *ptr32;
+                ptr32 = (uint32_t *)(&(buffer->data[w*j]));
+                int wid = pData->pstate->width/4;
+                for(i=0;i<wid; i++)
+                {
+                   uint32_t val = *ptr32++;
+                   count+=pData->pstate->binarizeLUT[(val & 0xff)];
+                   val >>= 8;
+                   count+=pData->pstate->binarizeLUT[(val & 0xff)];
+                   val >>= 8;
+                   count+=pData->pstate->binarizeLUT[(val & 0xff)];
+                   val >>= 8;
+                   count+=pData->pstate->binarizeLUT[(val & 0xff)];
+                }
             }
             printf("%g %u\n",buffer->pts/1000000.,count);
          }
