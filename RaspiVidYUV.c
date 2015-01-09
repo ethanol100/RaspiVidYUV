@@ -782,7 +782,7 @@ static void camera_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buff
 
                       if((val & 0xff) > maxv)
                       {
-                         maxv=val;
+                         maxv=(val & 0xff);
                          maxpi=4*i;
                          maxpj=j;
                       }
@@ -790,7 +790,7 @@ static void camera_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buff
                       val >>= 8;
                       if((val & 0xff) > maxv)
                       {
-                         maxv=val;
+                         maxv=(val & 0xff);
                          maxpi=4*i+1;
                          maxpj=j;
                       }
@@ -798,7 +798,7 @@ static void camera_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buff
                       val >>= 8;
                       if((val & 0xff) > maxv)
                       {
-                         maxv=val;
+                         maxv=(val & 0xff);
                          maxpi=4*i+2;
                          maxpj=j;
                       }
@@ -806,7 +806,7 @@ static void camera_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buff
                       val >>= 8;
                       if((val & 0xff) > maxv)
                       {
-                         maxv=val;
+                         maxv=(val & 0xff);
                          maxpi=4*i+3;
                          maxpj=j;
                       }
